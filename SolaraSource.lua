@@ -1,12 +1,10 @@
 local UILibrary = {}
 
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
-
-local ProtectGui = (syn and syn.protect_gui) or (function() end)
 
 local function Create(instance, properties, children)
     local obj = Instance.new(instance)
@@ -31,8 +29,7 @@ local function MakeDraggable(topbarobject, object)
     local function Update(input)
         local Delta = input.Position - DragStart
         local Position = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
-        local Tween = TweenService:Create(object, TweenInfo.new(0.15), {Position = Position})
-        Tween:Play()
+        object.Position = Position
     end
 
     topbarobject.InputBegan:Connect(function(input)
@@ -71,19 +68,8 @@ function UILibrary:CreateWindow(windowName)
         ResetOnSpawn = false,
     })
 
-    ProtectGui(OrionLib)
-
-    if syn then
-        syn.protect_gui(OrionLib)
-    end
-
-    if gethui then
-        OrionLib.Parent = gethui()
-    elseif not runservice:IsStudio() then
-        OrionLib.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    else
-        OrionLib.Parent = game:GetService("CoreGui")
-    end
+    -- Use PlayerGui instead of CoreGui
+    OrionLib.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
     local Main = Create("Frame", {
         Name = "Main",
@@ -91,7 +77,8 @@ function UILibrary:CreateWindow(windowName)
         BackgroundColor3 = Color3.fromRGB(25, 25, 25),
         BorderSizePixel = 0,
         Position = UDim2.new(0.5, -300, 0.5, -200),
-        Size = UDim2.new(0, 600, 0, 400)
+        Size = UDim2.new(0, 600, 0, 400),
+        ClipsDescendants = true
     })
 
     local TopBar = Create("Frame", {
