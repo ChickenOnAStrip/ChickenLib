@@ -1,272 +1,136 @@
+local UIS = game:GetService("UserInputService")
+
 local UILibrary = {}
 
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-
-local function Create(instance, properties, children)
-    local obj = Instance.new(instance)
-
-    for i, v in pairs(properties or {}) do
-        obj[i] = v
-    end
-
-    for i, v in pairs(children or {}) do
-        v.Parent = obj
-    end
-
-    return obj
-end
-
-local function MakeDraggable(topbarobject, object)
-    local Dragging = nil
-    local DragInput = nil
-    local DragStart = nil
-    local StartPosition = nil
-
-    local function Update(input)
-        local Delta = input.Position - DragStart
-        local Position = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
-        object.Position = Position
-    end
-
-    topbarobject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = true
-            DragStart = input.Position
-            StartPosition = object.Position
+-- Utility function to make a UI element draggable
+local function makeDraggable(topbarObject, object)
+    local dragging, dragInput, mousePos, framePos
+    
+    topbarObject.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            framePos = object.Position
             
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    Dragging = false
+                    dragging = false
                 end
             end)
         end
     end)
-
-    topbarobject.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            DragInput = input
+    
+    topbarObject.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
         end
     end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == DragInput and Dragging then
-            Update(input)
+    
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - mousePos
+            object.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
         end
     end)
 end
 
-function UILibrary:CreateWindow(windowName)
-    local Window = {}
+function UILibrary.new(name)
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = name
+    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
     
-    local OrionLib = Create("ScreenGui", {
-        Name = "OrionLib",
-        ZIndexBehavior = Enum.ZIndexBehavior.Global,
-        ResetOnSpawn = false,
-    })
-
-    -- Use PlayerGui instead of CoreGui
-    OrionLib.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-    local Main = Create("Frame", {
-        Name = "Main",
-        Parent = OrionLib,
-        BackgroundColor3 = Color3.fromRGB(25, 25, 25),
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, -300, 0.5, -200),
-        Size = UDim2.new(0, 600, 0, 400),
-        ClipsDescendants = true
-    })
-
-    local TopBar = Create("Frame", {
-        Name = "TopBar",
-        Parent = Main,
-        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 30)
-    })
-
-    local WindowName = Create("TextLabel", {
-        Name = "WindowName",
-        Parent = TopBar,
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1.000,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 10, 0, 0),
-        Size = UDim2.new(1, -20, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = windowName,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 14.000,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-
-    local CloseButton = Create("TextButton", {
-        Name = "CloseButton",
-        Parent = TopBar,
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1.000,
-        BorderSizePixel = 0,
-        Position = UDim2.new(1, -30, 0, 0),
-        Size = UDim2.new(0, 30, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "X",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 14.000,
-    })
-
-    CloseButton.MouseButton1Click:Connect(function()
-        OrionLib:Destroy()
-    end)
-
-    local TabContainer = Create("Frame", {
-        Name = "TabContainer",
-        Parent = Main,
-        BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 30),
-        Size = UDim2.new(0, 150, 1, -30)
-    })
-
-    local TabList = Create("ScrollingFrame", {
-        Name = "TabList",
-        Parent = TabContainer,
-        Active = true,
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1.000,
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 1, 0),
-        ScrollBarThickness = 0
-    })
-
-    local UIListLayout = Create("UIListLayout", {
-        Parent = TabList,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5)
-    })
-
-    local ContentContainer = Create("Frame", {
-        Name = "ContentContainer",
-        Parent = Main,
-        BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 150, 0, 30),
-        Size = UDim2.new(1, -150, 1, -30)
-    })
-
-    MakeDraggable(TopBar, Main)
-
-    function Window:CreateTab(tabName)
-        local Tab = {}
-
-        local TabButton = Create("TextButton", {
-            Name = "TabButton",
-            Parent = TabList,
-            BackgroundColor3 = Color3.fromRGB(45, 45, 45),
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, -10, 0, 30),
-            Font = Enum.Font.GothamSemibold,
-            Text = tabName,
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 14.000
-        })
-
-        local TabContent = Create("ScrollingFrame", {
-            Name = "TabContent",
-            Parent = ContentContainer,
-            Active = true,
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BackgroundTransparency = 1.000,
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, 0, 1, 0),
-            ScrollBarThickness = 0,
-            Visible = false
-        })
-
-        local UIListLayout = Create("UIListLayout", {
-            Parent = TabContent,
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 5)
-        })
-
-        TabButton.MouseButton1Click:Connect(function()
-            for _, v in pairs(ContentContainer:GetChildren()) do
-                if v:IsA("ScrollingFrame") then
-                    v.Visible = false
-                end
+    local self = {
+        gui = ScreenGui,
+        windows = {}
+    }
+    
+    function self:createWindow(title, size)
+        local window = {}
+        
+        window.frame = Instance.new("Frame")
+        window.frame.Size = size or UDim2.new(0, 400, 0, 300)
+        window.frame.Position = UDim2.new(0.5, -200, 0.5, -150)
+        window.frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        window.frame.Parent = self.gui
+        
+        window.topBar = Instance.new("Frame")
+        window.topBar.Size = UDim2.new(1, 0, 0, 30)
+        window.topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        window.topBar.Parent = window.frame
+        
+        window.title = Instance.new("TextLabel")
+        window.title.Size = UDim2.new(1, -10, 1, 0)
+        window.title.Position = UDim2.new(0, 10, 0, 0)
+        window.title.BackgroundTransparency = 1
+        window.title.Text = title
+        window.title.TextColor3 = Color3.new(1, 1, 1)
+        window.title.TextXAlignment = Enum.TextXAlignment.Left
+        window.title.Parent = window.topBar
+        
+        makeDraggable(window.topBar, window.frame)
+        
+        window.content = Instance.new("Frame")
+        window.content.Size = UDim2.new(1, 0, 1, -30)
+        window.content.Position = UDim2.new(0, 0, 0, 30)
+        window.content.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        window.content.Parent = window.frame
+        
+        function window:addButton(text, callback)
+            local button = Instance.new("TextButton")
+            button.Size = UDim2.new(0, 100, 0, 30)
+            button.Position = UDim2.new(0, 10, 0, #self.content:GetChildren() * 40)
+            button.Text = text
+            button.Parent = self.content
+            button.MouseButton1Click:Connect(callback)
+            return button
+        end
+        
+        function window:addDropdown(text, options, callback)
+            local dropdown = {}
+            
+            dropdown.frame = Instance.new("Frame")
+            dropdown.frame.Size = UDim2.new(0, 200, 0, 30)
+            dropdown.frame.Position = UDim2.new(0, 10, 0, #self.content:GetChildren() * 40)
+            dropdown.frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            dropdown.frame.Parent = self.content
+            
+            dropdown.button = Instance.new("TextButton")
+            dropdown.button.Size = UDim2.new(1, 0, 1, 0)
+            dropdown.button.Text = text
+            dropdown.button.Parent = dropdown.frame
+            
+            dropdown.list = Instance.new("Frame")
+            dropdown.list.Size = UDim2.new(1, 0, 0, #options * 30)
+            dropdown.list.Position = UDim2.new(0, 0, 1, 0)
+            dropdown.list.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            dropdown.list.Visible = false
+            dropdown.list.Parent = dropdown.frame
+            
+            for i, option in ipairs(options) do
+                local optionButton = Instance.new("TextButton")
+                optionButton.Size = UDim2.new(1, 0, 0, 30)
+                optionButton.Position = UDim2.new(0, 0, 0, (i-1) * 30)
+                optionButton.Text = option
+                optionButton.Parent = dropdown.list
+                optionButton.MouseButton1Click:Connect(function()
+                    dropdown.button.Text = option
+                    dropdown.list.Visible = false
+                    if callback then callback(option) end
+                end)
             end
-            TabContent.Visible = true
-        end)
-
-        function Tab:CreateButton(buttonText, callback)
-            local Button = Create("TextButton", {
-                Name = "Button",
-                Parent = TabContent,
-                BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 30),
-                Font = Enum.Font.GothamSemibold,
-                Text = buttonText,
-                TextColor3 = Color3.fromRGB(255, 255, 255),
-                TextSize = 14.000
-            })
-
-            Button.MouseButton1Click:Connect(function()
-                callback()
+            
+            dropdown.button.MouseButton1Click:Connect(function()
+                dropdown.list.Visible = not dropdown.list.Visible
             end)
+            
+            return dropdown
         end
-
-        function Tab:CreateToggle(toggleText, default, callback)
-            local Toggle = Create("Frame", {
-                Name = "Toggle",
-                Parent = TabContent,
-                BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 30)
-            })
-
-            local ToggleButton = Create("TextButton", {
-                Name = "ToggleButton",
-                Parent = Toggle,
-                BackgroundColor3 = default and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0),
-                BorderSizePixel = 0,
-                Size = UDim2.new(0, 30, 1, 0),
-                Font = Enum.Font.SourceSans,
-                Text = "",
-                TextColor3 = Color3.fromRGB(0, 0, 0),
-                TextSize = 14.000
-            })
-
-            local ToggleText = Create("TextLabel", {
-                Name = "ToggleText",
-                Parent = Toggle,
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                BackgroundTransparency = 1.000,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 40, 0, 0),
-                Size = UDim2.new(1, -40, 1, 0),
-                Font = Enum.Font.GothamSemibold,
-                Text = toggleText,
-                TextColor3 = Color3.fromRGB(255, 255, 255),
-                TextSize = 14.000,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-
-            local toggled = default
-            ToggleButton.MouseButton1Click:Connect(function()
-                toggled = not toggled
-                ToggleButton.BackgroundColor3 = toggled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-                callback(toggled)
-            end)
-        end
-
-        return Tab
+        
+        table.insert(self.windows, window)
+        return window
     end
-
-    return Window
+    
+    return self
 end
 
 return UILibrary
